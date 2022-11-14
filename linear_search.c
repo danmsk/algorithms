@@ -1,10 +1,5 @@
+#include "test_utills.h"
 #include <stdio.h>
-
-void expect_equal(int expected, int actual) {
-  if (expected != actual) {
-    printf("expected %d, found %d\n", expected, actual);
-  }
-}
 
 int find(int *array, int size, int value) {
   for (int i = 0; i < size; ++i) {
