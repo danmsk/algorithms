@@ -1,13 +1,6 @@
 #include "test_utills.h"
+#include <stdint.h>
 #include <stdio.h>
-
-// TODO:
-// Написать тесты на memcpy
-// Написать тесты на сортировку
-// Залить на гит, когда все тесты пройдут
-
-// Написать сортировку подсчетами
-// Написать быструю сортировку
 
 void swap(int *a, int *b) {
   int c = *a;
@@ -30,8 +23,8 @@ void check_swap(int a, int b) {
   int old_b = b;
 
   swap(&a, &b);
-  expect_equal(old_a, b);
-  expect_equal(old_b, a);
+  EXPECT(old_a == b);
+  EXPECT(old_b == a);
 }
 
 void test_swap() {
@@ -42,92 +35,79 @@ void test_swap() {
   check_swap(9, 42);
 }
 
-int min(int *array, size_t size) {
-  int min = array[0];
+void minmax(int *array, int *min, int *max, size_t size) {
+  *min = array[0];
+  *max = array[0];
   for (int i = 0; i < size; ++i) {
-    if (array[i] < min) {
-      min = array[i];
+    if (array[i] > *max) {
+      *max = array[i];
+    }
+    if (array[i] < *min) {
+      *min = array[i];
     }
   }
-  return min;
 }
 
-int max(int *array, size_t size) {
-  int max = array[0];
-  for (int i = 0; i < size; ++i) {
-    if (array[i] > max) {
-      max = array[i];
-    }
+void count_elements(int *array, int *counted_elements, size_t size) {
+  int min, max;
+  minmax(array, &min, &max, size);
+  for (int i = 0; i < max - min + 1; ++i) {
+    counted_elements[i] = 0;
   }
-  return max;
+  for (int i = 0; i < size; ++i) {
+    counted_elements[array[i] - min]++;
+  }
 }
 
 void check_contains_all_element(int *original, int *sorted, int size) {
-  int maxo = max(original, size);
-  int mino = min(original, size);
-  int elements_original[maxo - mino + 1];
-  for (int i = 0; i < maxo - mino + 1; ++i) {
-    elements_original[i] = 0;
-  }
-  for (int i = 0; i < size; ++i) {
-    elements_original[original[i] - mino]++;
-  }
-  int maxs = max(sorted, size);
-  int mins = min(sorted, size);
-  int elements_sorted[maxs - mins + 1];
-  for (int i = 0; i < maxs - mins + 1; ++i) {
-    elements_sorted[i] = 0;
-  }
-  for (int i = 0; i < size; ++i) {
-    elements_sorted[sorted[i] - mins]++;
-  }
-  for (int i = 0; i < maxs - mins; ++i) {
-    expect_equal(elements_original[i], elements_sorted[i]);
+  int min, max;
+  minmax(original, &min, &max, size);
+  int elements_original[max - min + 1];
+  minmax(sorted, &min, &max, size);
+  int elements_sorted[max - min + 1];
+  count_elements(original, elements_original, size);
+  count_elements(sorted, elements_sorted, size);
+  for (int i = 0; i < max - min + 1; ++i) {
+    EXPECT(elements_original[i] == elements_sorted[i]);
   }
 }
 
 void check_sorted(int *sorted, int size) {
   for (int i = 0; i < size - 1; ++i) {
-    if (sorted[i] > sorted[i + 1]) {
-      printf("error\n");
-    }
+    EXPECT(sorted[i] > sorted[i + 1]);
   }
 }
 
-void danil_memcpy(int *dst, int *src, size_t size) {
+void danil_memcpy(void *dst, const void *src, size_t size) {
+  char *d = dst;
+  const char *s = src;
   for (int i = 0; i < size; ++i) {
-    dst[i] = src[i];
+    d[i] = s[i];
   }
 }
 
-void check_danil_memcpy(int *dst, int *src, size_t size) {
+void check_danil_memcpy(void *dst, const void *src, size_t size) {
+  char *d = dst;
+  const char *s = src;
   danil_memcpy(dst, src, size);
   for (int i = 0; i < size; ++i) {
-    if (dst[i] != src[i]) {
-      printf("expected%c, actual%c\n", src[i], dst[i]);
-    }
+    EXPECT(s[i] == d[i]);
   }
 }
 
 void test_danil_memcpy() {
-  size_t size = 5;
-  int array_test[5] = {1, 2, 3, 4, 5};
-  int array1[5] = {1, 1, 1, 1, 1};
-  int array2[5] = {2, 2, 2, 2, 2};
-  int array3[5] = {3, 3, 3, 3, 3};
-  int array4[5] = {4, 4, 4, 4, 4};
-  check_danil_memcpy(array_test, array1, size);
-  check_danil_memcpy(array_test, array2, size);
-  check_danil_memcpy(array_test, array3, size);
-  check_danil_memcpy(array_test, array4, size);
+  size_t size = 5 * sizeof(int);
+  int src[5] = {1, 2, 3, 4, 5};
+  int dst[5];
+  check_danil_memcpy(dst, src, sizeof(src));
+
+  int a = 5, b;
+  check_danil_memcpy(&b, &a, sizeof(int));
 }
 
 void check_sort(int *original, size_t size) {
   int sorted[size];
-  danil_memcpy(sorted, original, size);
-  int a = 5;
-  int b;
-
+  danil_memcpy(sorted, original, size * sizeof(int));
   sort(sorted, size);
   check_contains_all_element(original, sorted, size);
   check_sorted(sorted, size);
@@ -146,6 +126,6 @@ void test_sort() {
 
 int main() {
   test_swap();
-  test_sort();
   test_danil_memcpy();
+  test_sort();
 }
