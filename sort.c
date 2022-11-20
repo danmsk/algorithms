@@ -1,4 +1,4 @@
-#include "test_utills.h"
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -8,7 +8,7 @@ void swap(int *a, int *b) {
   *b = c;
 }
 
-void sort(int *array, int size) {
+void sort(int *array, size_t size) {
   for (int i = 0; i < size - 1; ++i) {
     for (int j = 0; j < size - 1 - i; ++j) {
       if (array[j] > array[j + 1]) {
@@ -16,23 +16,6 @@ void sort(int *array, int size) {
       }
     }
   }
-}
-
-void check_swap(int a, int b) {
-  int old_a = a;
-  int old_b = b;
-
-  swap(&a, &b);
-  EXPECT(old_a == b);
-  EXPECT(old_b == a);
-}
-
-void test_swap() {
-  check_swap(1, 2);
-  check_swap(1, 1);
-  check_swap(1, 100500);
-  check_swap(-100500, 100500);
-  check_swap(9, 42);
 }
 
 void minmax(int *array, int *min, int *max, size_t size) {
@@ -59,23 +42,13 @@ void count_elements(int *array, int *counted_elements, size_t size) {
   }
 }
 
-void check_contains_all_element(int *original, int *sorted, int size) {
-  int min, max;
-  minmax(original, &min, &max, size);
-  int elements_original[max - min + 1];
-  minmax(sorted, &min, &max, size);
-  int elements_sorted[max - min + 1];
-  count_elements(original, elements_original, size);
-  count_elements(sorted, elements_sorted, size);
-  for (int i = 0; i < max - min + 1; ++i) {
-    EXPECT(elements_original[i] == elements_sorted[i]);
-  }
-}
-
-void check_sorted(int *sorted, int size) {
+bool is_sorted(int *array, size_t size) {
   for (int i = 0; i < size - 1; ++i) {
-    EXPECT(sorted[i] > sorted[i + 1]);
+    if (array[i] > array[i + 1]) {
+      return 0;
+    }
   }
+  return 1;
 }
 
 void danil_memcpy(void *dst, const void *src, size_t size) {
@@ -86,46 +59,65 @@ void danil_memcpy(void *dst, const void *src, size_t size) {
   }
 }
 
-void check_danil_memcpy(void *dst, const void *src, size_t size) {
-  char *d = dst;
-  const char *s = src;
-  danil_memcpy(dst, src, size);
+void count_sort(int *array, size_t size) {
+  int min, max;
+  int count = 0;
+  minmax(array, &min, &max, size);
+  int counted[max - min + 1];
+  count_elements(array, counted, size);
+  for (int i = 0; i < max - min + 1; ++i) {
+    for (int j = 0; j < counted[i]; ++j) {
+      int k = i + min;
+      danil_memcpy(&array[count], &k, sizeof(int));
+      count++;
+    }
+  }
+}
+
+void push_right(int *array, int start, int end) {
+  int mem = array[end];
+  for (int i = end; i > start; --i) {
+    danil_memcpy(&array[i], &array[i - 1], sizeof(int));
+  }
+  array[start] = mem;
+}
+
+void push_left(int *array, int start, int end) {
+  int mem = array[start];
+  for (int i = start; i < end; ++i) {
+    danil_memcpy(&array[i], &array[i + 1], sizeof(int));
+  }
+  array[end] = mem;
+}
+
+size_t partition(int *array, size_t size) {
+  size_t count_greater = 0;
+  size_t pivot_index = 0;
+  int pivot_value = array[pivot_index];
   for (int i = 0; i < size; ++i) {
-    EXPECT(s[i] == d[i]);
+    if (pivot_index + count_greater + 1 == size) {
+      return pivot_index;
+    }
+    if (array[i] <= pivot_value) {
+      swap(&array[pivot_index], &array[i]);
+      pivot_index = i;
+    } else {
+      swap(&array[i], &array[size - count_greater - 1]);
+      count_greater++;
+      i--;
+    }
   }
+  return pivot_index;
 }
 
-void test_danil_memcpy() {
-  size_t size = 5 * sizeof(int);
-  int src[5] = {1, 2, 3, 4, 5};
-  int dst[5];
-  check_danil_memcpy(dst, src, sizeof(src));
-
-  int a = 5, b;
-  check_danil_memcpy(&b, &a, sizeof(int));
-}
-
-void check_sort(int *original, size_t size) {
-  int sorted[size];
-  danil_memcpy(sorted, original, size * sizeof(int));
-  sort(sorted, size);
-  check_contains_all_element(original, sorted, size);
-  check_sorted(sorted, size);
-}
-
-void test_sort() {
-  {
-    int array[] = {1, 5, 2, 14, 5, 21, 58, 3, 2, 16};
-    check_sort(array, 10);
+void quick_sort(int *array, size_t size) {
+  if (size < 2) {
+    return;
   }
-  {
-    int array[] = {100, 2, 6, 3, 8, -2, 3, 6, 7, 0};
-    check_sort(array, 10);
+  if (is_sorted(array, size)) {
+    return;
   }
-}
-
-int main() {
-  test_swap();
-  test_danil_memcpy();
-  test_sort();
+  size_t pivot = partition(array, size);
+  quick_sort(array + pivot + 1, size - pivot - 1);
+  quick_sort(array, pivot);
 }
